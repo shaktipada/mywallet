@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block head_title %}{% endblock head_title %}</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+  </head>
+  <body>
+    <div class="container">
+      {% if user.is_authenticated %}
+        {% include "includes/_header.html" %}
+      {% endif %}
+      {% block body_content %}{% endblock body_content %}
+    </div>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+
+    {% block java_scripts %}{% endblock java_scripts %}
+
+  </body>
+</html>
