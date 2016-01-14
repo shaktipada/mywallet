@@ -22,6 +22,9 @@ SECRET_KEY = 'a!qq^+nsixz9%(*4rj-uam062gbq8bi2vvb@e5i+$j&kxq#=$@'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+if DEBUG:
+    DOMAIN = 'http://localhost:8000'
+
 TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -41,6 +44,7 @@ INSTALLED_APPS = (
     'debug_toolbar',
     'rest_framework',
     'api',
+    'core',
 )
 
 # REST_FRAMEWORK = {
@@ -57,8 +61,6 @@ REST_FRAMEWORK = {
     ),
     'PAGE_SIZE': 10
 }
-
-
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -109,3 +111,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
+
+

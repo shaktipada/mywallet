@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load mywallet_tags %}
+
+{% block head_title %} MyWallet {% endblock head_title %}
+{% block body_content %}
+	{% if txns and mywallet_user or mywallet_user.wallet == 0.0 %}
+  	{# {% include "includes/_txn.html" with txns=txns user=user %} #}
+		<div class="row">
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Balance: {{ mywallet_user.wallet }}</h4></div>
+		</div>
+		{% check_customer user.id as customer %}
+		{% check_biller user.id as biller %}
+
+		{% if customer %}
+		  <button type="button" class="btn btn-danger" id="pay">Pay Bills</button>
+		  <button type="button" class="btn btn-primary" id="load">Add Amount</button>
+		  <button type="button" class="btn btn-danger" id="transfer">Transfer Amount</button>
+		{% elif biller %}
+		  <button type="button" class="btn btn-success" id="unload">Unload Amount</button>
+		{% endif %}
+		<h3>Transactions</h3>
+		<div class="row">
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>From</h4></div>
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>To</h4></div>
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Amount</h4></div>
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Notes</h4></div>
+		</div>
+		{% for txn in txns %}
+		  <div class="row">
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.from_user.user.username }}</h5></div>
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.to_user.user.username }}</h5></div>
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.amount }}</h5></div>
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.note }}</h5></div>
+		  </div>
+		{% endfor %}
+
+		<!-- unload amount modals -->
+		<div id="unload-modal" class="modal fade" role="dialog">
+	  	<div class="modal-dialog">
+		    <div class="modal-content">
+	  	    <div class="modal-header">
+	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+	      	  <h4 class="modal-title">Unload amount</h4>
+	      	</div>
+	      	<div class="modal-body">
+						<form role="form" action="" method="post" accept-charset="utf-8" id='unload_form'>
+		      		{% csrf_token %}
+		  				<div class="form-group">
+						    <label for="amount">Amount</label>
+								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
+							</div>
+		  				<div class="form-group">
+						    <label for="note">Note</label>
+								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
+								<input id='type' class="form-control" type="hidden" name="type" value="unload" placeholder="">
+							</div>
+		        	<button type="button" class="btn btn-primary" id="unload-submit">Submit</button>
+						</form>
+	      	</div>
+	      	<div class="modal-footer"></div>
+	    	</div>
+	  	</div>
+		</div>
+
+		<!-- load amount modals -->
+		<div id="load-modal" class="modal fade" role="dialog">
+	  	<div class="modal-dialog">
+		    <div class="modal-content">
+	  	    <div class="modal-header">
+	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+	      	  <h4 class="modal-title">load amount</h4>
+	      	</div>
+	      	<div class="modal-body">
+						<form role="form" action="" method="post" accept-charset="utf-8" id='load_form'>
+		      		{% csrf_token %}
+		  				<div class="form-group">
+						    <label for="amount">Amount</label>
+								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
+							</div>
+		  				<div class="form-group">
+						    <label for="note">Note</label>
+								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
+								<input id='type' class="form-control" type="hidden" name="type" value="load" placeholder="">
+							</div>
+		        	<button type="button" class="btn btn-primary" id="load-submit">Submit</button>
+						</form>
+	      	</div>
+	      	<div class="modal-footer"></div>
+	    	</div>
+	  	</div>
+		</div>
+
+	{% endif %}
+
+	<!-- Edit profile modals -->
+	<div id="edit-profile-modal" class="modal fade" role="dialog">
+  	<div class="modal-dialog">
+	    <div class="modal-content">
+  	    <div class="modal-header">
+    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+      	  <h4 class="modal-title">Edit Profile</h4>
+      	</div>
+      	<div class="modal-body">
+
+					<form role="form" action="" method="post" accept-charset="utf-8" id='edit_profile_form'>
+	      		{% csrf_token %}
+	  				<div class="form-group">
+					    <label for="first_name">Name</label>
+					    <div class="row">
+					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+									<input id='first_name' class="form-control" type="text" name="first-name" value="" placeholder="">
+								</div>
+					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+									<input id='last_name' class="form-control" type="text" name="last-name" value="" placeholder="">
+								</div>
+							</div>
+						</div>
+	  				<div class="form-group">
+					    <label for="contact_number">Contact Number</label>
+							<input id='contact_number' class="form-control" type="phone" name="contact_number" value="" placeholder="Mobile no.">
+						</div>
+	        	<button type="button" class="btn btn-primary" id="edit-profile">Submit</button>
+					</form>
+
+					</br></br>
+
+					<form role="form" action="" method="post" accept-charset="utf-8" id='change_password_form'>
+	      		{% csrf_token %}
+						<div class="form-group">
+					    <label for="passcode">Change Password</label>
+					    <div class="row">
+					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+									<input id='passcode' class="form-control" type="password" name="password" value="" placeholder="Password">
+								</div>
+					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+									<input id='confirm_passcode' class="form-control" type="password" name="confirm-passcode" value="" placeholder="Confirm Password">
+								</div>
+							</div>
+						</div>
+	        	<button type="button" class="btn btn-primary" id="change-password">Submit</button>
+					</form>
+
+      	</div>
+      	<div class="modal-footer"></div>
+    	</div>
+  	</div>
+	</div>
+
+
+{% endblock body_content %}
+{% block java_scripts %}
+	<script type="text/javascript">
+    $(document).ready(function(){
+
+			$('#unload').click(function(event) {
+				$("#unload-modal").modal({
+			    backdrop: 'static',
+			    keyboard: true,
+			    show: true
+			  });
+			});
+			$('#unload-submit').click(function(event) {
+    		var data = $( "form#unload_form" ).serializeArray();
+    		console.log(data);
+				$.ajax({
+		      url: "{% url 'api:transactions' user.id %}",
+	        type: 'POST',
+          data: data,
+	        dataType: 'json',
+	        context: this,
+	        success: function(data) {
+	        	console.log(data);
+			      location.reload();
+	        },
+	        error: function() {
+	          console.log("error");
+			      $("#txn-modal").modal('hide');
+	        }
+	      });
+			});
+
+
+			$('#load').click(function(event) {
+				$("#load-modal").modal({
+			    backdrop: 'static',
+			    keyboard: true,
+			    show: true
+			  });
+			});
+			$('#load-submit').click(function(event) {
+    		var data = $( "form#load_form" ).serializeArray();
+    		console.log(data);
+				$.ajax({
+		      url: "{% url 'api:transactions' user.id %}",
+	        type: 'POST',
+          data: data,
+	        dataType: 'json',
+	        context: this,
+	        success: function(data) {
+	        	console.log(data);
+			      location.reload();
+	        },
+	        error: function() {
+	          console.log("error");
+			      $("#txn-modal").modal('hide');
+	        }
+	      });
+			});
+
+
+			$('#edit_profile').click(function(e){
+	      e.preventDefault();
+        $('#edit_profile_form #first_name').val('');
+        $('#edit_profile_form #last_name').val('');
+        $('#edit_profile_form #contact_number').val('');
+        $('#change_password_form #passcode').val('');
+        $('#change_password_form #confirm_passcode').val('');
+	      $.ajax({
+	        url: "{% url 'api:user' user.id %}",
+	        type: 'GET',
+	        dataType: 'json',
+	        context: this,
+	        success: function(result){
+	        	console.log(result);
+	          $('#edit_profile_form #first_name').val(result.user.first_name);
+	          $('#edit_profile_form #last_name').val(result.user.last_name);
+	          $('#edit_profile_form #contact_number').val(result.contact_number);
+			      $("#edit-profile-modal").modal({
+			          backdrop: 'static',
+			          keyboard: true,
+			          show: true
+			      });
+	        },
+	        error: function(){
+	          console.log("error");
+	        }
+	      });
+	    });
+
+			$('#edit-profile').click(function(e){
+	      e.preventDefault();
+	      $.ajax({
+		      url: "{% url 'api:edit_profile' user.id %}",
+	        type: 'PUT',
+          data: $( "form#edit_profile_form" ).serializeArray(),
+	        dataType: 'json',
+	        context: this,
+	        success: function(data) {
+	        	console.log(data);
+			      $("#edit-profile-modal").modal('hide');
+	        },
+	        error: function() {
+	          console.log("error");
+			      $("#edit-profile-modal").modal('hide');
+	        }
+	      });
+	    });
+
+			$('#change-password').click(function(e){
+	      e.preventDefault();
+    		var password = $('#passcode').val();
+    		var confirm_password = $('#confirm_passcode').val();
+    		if (password == confirm_password) {
+		      $.ajax({
+		        url: "{% url 'api:edit_profile' user.id %}",
+		        type: 'PUT',
+	          data: $( "form#change_password_form" ).serializeArray(),
+		        dataType: 'json',
+		        context: this,
+		        success: function(data) {
+		        	console.log(data);
+			      	$("#edit-profile-modal").modal('hide');
+		        },
+		        error: function() {
+		          console.log("error");
+			      	$("#edit-profile-modal").modal('hide');
+		        }
+		      });
+		    }
+		    else {
+  				$('#passcode').val('');
+    			$('#confirm_passcode').val('');
+      	}
+	    });
+	  
+	  });
+	</script>
+{% endblock java_scripts %}

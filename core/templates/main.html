@@ -2,13 +2,17 @@
 {% block head_title %} MyWallet {% endblock head_title %}
 {% block body_content %}
 	<h2 class="text-center">Welcome to MyWallet</h2>
-	</br></br>
+	</br>
+	{% if message %}
+		<h4 class="text-center">{{ message }}</h4>
+	{% endif %}
+	</br>
 	<div class="row">
 		<div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">
 			<div id='signup'>
 				<h4 class='text-center'>Sign Up</h4>
-      	{% csrf_token %}
-				<form role="form" action="" method="post" accept-charset="utf-8" id='signup_form'>
+				<form role="form" action="{% url 'core:main' %}" method="post" accept-charset="utf-8" id='signup_form'>
+  	    	{% csrf_token %}
   				<div class="form-group">
 				    <label for="first_name"></label>
 						<input id='first_name' class="form-control" type="text" name="first-name" value="" placeholder="First Name / Merchant Name">
@@ -39,12 +43,18 @@
 					</div>
 					<div class="form-group">
 				    <label for="type"></label>
-						<label class="checkbox-inline">
-							<input id="biller_signup" type="checkbox" value="">Merchant (Check if Merchant)
+						<label class="radio-inline">
+							<input name="type" id="biller_signin" type="radio" value="biller">Merchant
 						</label>
-						<input id='signup_type' class="form-control" type="hidden" name="type" value="customer">
+						<label class="radio-inline">
+							<input name="type" id="customer_signin" type="radio" value="customer">Customer
+						</label>
+						<label class="radio-inline">
+							<input name="type" id="admin_signin" type="radio" value="admin" checked>Staff/Admin
+						</label>
+						<input id='form_type' class="form-control" type="hidden" name="form" value="signup">
 					</div>
-					<button type="" id='submit_signup' class='btn btn-danger btn-lg'>Submit</button>
+					<button type="submit" id='submit_signup' class='btn btn-danger btn-lg'>Submit</button>
 				</form>
 			</div>
 		</div>
@@ -54,8 +64,8 @@
 		<div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">
 			<div id='signin'>
 				<h4 class='text-center'>Sign In</h4>
-      	{% csrf_token %}
-				<form role="form" action="" method="post" accept-charset="utf-8" id='signin_form'>
+				<form role="form" action="{% url 'core:main' %}" method="post" accept-charset="utf-8" id='signin_form'>
+	      	{% csrf_token %}
 					<div class="form-group">
 				    <label for="username"></label>
 						<input id='username' class="form-control" type="text" name="username" value="" placeholder="Username / EmailID / Mobile no.">
@@ -66,10 +76,16 @@
 					</div>
 					<div class="form-group">
 				    <label for="type"></label>
-						<label class="checkbox-inline">
-							<input id="biller_signin" type="checkbox" value="">Merchant (Check if Merchant)
+						<label class="radio-inline">
+							<input name="type" id="biller_signin" type="radio" value="biller">Merchant
 						</label>
-						<input id='signin_type' class="form-control" type="hidden" name="type" value="customer">
+						<label class="radio-inline">
+							<input name="type" id="customer_signin" type="radio" value="customer">Customer
+						</label>
+						<label class="radio-inline">
+							<input name="type" id="admin_signin" type="radio" value="admin" checked>Staff/Admin
+						</label>
+						<input id='form_type' class="form-control" type="hidden" name="form" value="signin">
 					</div>
 					<button type="" id='submit_signin' class='btn btn-danger btn-lg'>Submit</button>
 				</form>
@@ -82,7 +98,7 @@
 	  <script>
     	$(document).ready(function(){
     		
-      	$('#biller_signin').click(function(event) {
+/*      	$('#biller_signin').click(function(event) {
     			if ($('#biller_signin').is(':checked')){
         		$('#signin #signin_type').val('biller');
         	}
@@ -90,6 +106,7 @@
         		$('#signin #signin_type').val('customer');
         	}
       	});
+
       	$('#biller_signup').click(function(event) {
 	        if ($('#biller_signup').is(':checked')){
 		        $('#signup #signup_type').val('biller');
@@ -98,27 +115,11 @@
 		        $('#signup #signup_type').val('customer');
 		      }
 		    });
-
+*/
       	$('#submit_signin').click(function(event) {
 					event.preventDefault();
         	$("#signin #submit_signin").button('loading');
-	      	console.log($( "form#signin_form" ).serializeArray());
-      		$.ajax({
-            type: 'POST',
-            url: "{% url 'signin' %}",
-            data: $( "form#signin_form" ).serializeArray(),
-            dataType: 'json',
-            success: function(results) {
-	            	console.log(results);
-	            	if ('customer' in results){
-	            		console.log("hello");
-	            	}
-	            	//location.href = "{% url 'dashboard_home' %}";
-            },
-            error: function(xhr, status, error){
-	            	console.log(error);
-            }
-      		});
+        	$('#signin_form').submit();
       	});
 
       	$('#submit_signup').click(function(event) {
@@ -126,23 +127,10 @@
       		var password = $('#passcode').val();
       		var confirm_password = $('#confirm_passcode').val();
       		if (password == confirm_password) {
-	      		$("#signup #submit_signup").button('loading');
-	      		console.log($( "form#signup_form" ).serializeArray());
-	      		$.ajax({
-	            type: 'POST',
-	            url: "{% url 'signup' %}",
-	            data: $( "form#signup_form" ).serializeArray(),
-	            dataType: 'json',
-	            success: function(results) {
-	            	console.log(results);
-	            },
-	            error: function(xhr, status, error){
-	            	console.log(error)
-	            }
-	      		});	
+	      		$("#signup #submit_signup").button('loading');	
+        		$('#signup_form').submit();
       		}
       		else {
-    				alert("Password mismatch");
     				$('#passcode').val('');
       			$('#confirm_passcode').val('');
       		}
