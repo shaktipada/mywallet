@@ -11,10 +11,149 @@
       {% if user.is_authenticated %}
         {% include "includes/_header.html" %}
       {% endif %}
+      
       {% block body_content %}{% endblock body_content %}
+
+      {% if user.is_authenticated %}
+        <!-- Edit profile modals -->
+        <div id="edit-profile-modal" class="modal fade" role="dialog">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Edit Profile</h4>
+              </div>
+              <div class="modal-body">
+
+                <form role="form" action="" method="post" accept-charset="utf-8" id='edit_profile_form'>
+                  {% csrf_token %}
+                  <div class="form-group">
+                    <label for="first_name">Name</label>
+                    <div class="row">
+                      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                        <input id='first_name' class="form-control" type="text" name="first-name" value="" placeholder="">
+                      </div>
+                      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                        <input id='last_name' class="form-control" type="text" name="last-name" value="" placeholder="">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="contact_number">Contact Number</label>
+                    <input id='contact_number' class="form-control" type="phone" name="contact_number" value="" placeholder="Mobile no.">
+                  </div>
+                  <button type="button" class="btn btn-primary" id="edit-profile">Submit</button>
+                </form>
+
+                </br></br>
+
+                <form role="form" action="" method="post" accept-charset="utf-8" id='change_password_form'>
+                  {% csrf_token %}
+                  <div class="form-group">
+                    <label for="passcode">Change Password</label>
+                    <div class="row">
+                      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                        <input id='passcode' class="form-control" type="password" name="password" value="" placeholder="Password">
+                      </div>
+                      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                        <input id='confirm_passcode' class="form-control" type="password" name="confirm-passcode" value="" placeholder="Confirm Password">
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-primary" id="change-password">Submit</button>
+                </form>
+
+              </div>
+              <div class="modal-footer"></div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    {% if user.is_authenticated %}
+      <script type="text/javascript">
+          $(document).ready(function(){
+
+            $('#edit_profile').click(function(e){
+              e.preventDefault();
+              $('#edit_profile_form #first_name').val('');
+              $('#edit_profile_form #last_name').val('');
+              $('#edit_profile_form #contact_number').val('');
+              $('#change_password_form #passcode').val('');
+              $('#change_password_form #confirm_passcode').val('');
+              $.ajax({
+                url: "{% url 'api:user' user.id %}",
+                type: 'GET',
+                dataType: 'json',
+                context: this,
+                success: function(result){
+                  console.log(result);
+                  $('#edit_profile_form #first_name').val(result.user.first_name);
+                  $('#edit_profile_form #last_name').val(result.user.last_name);
+                  $('#edit_profile_form #contact_number').val(result.contact_number);
+                  $("#edit-profile-modal").modal({
+                      backdrop: 'static',
+                      keyboard: true,
+                      show: true
+                  });
+                },
+                error: function(){
+                  console.log("error");
+                }
+              });
+            });
+
+            $('#edit-profile').click(function(e){
+              e.preventDefault();
+              $.ajax({
+                url: "{% url 'api:edit_profile' user.id %}",
+                type: 'PUT',
+                data: $( "form#edit_profile_form" ).serializeArray(),
+                dataType: 'json',
+                context: this,
+                success: function(data) {
+                  console.log(data);
+                  $("#edit-profile-modal").modal('hide');
+                },
+                error: function() {
+                  console.log("error");
+                  $("#edit-profile-modal").modal('hide');
+                }
+              });
+            });
+
+            $('#change-password').click(function(e){
+              e.preventDefault();
+              var password = $('#passcode').val();
+              var confirm_password = $('#confirm_passcode').val();
+              if (password == confirm_password) {
+                $.ajax({
+                  url: "{% url 'api:edit_profile' user.id %}",
+                  type: 'PUT',
+                  data: $( "form#change_password_form" ).serializeArray(),
+                  dataType: 'json',
+                  context: this,
+                  success: function(data) {
+                    console.log(data);
+                    $("#edit-profile-modal").modal('hide');
+                  },
+                  error: function() {
+                    console.log("error");
+                    $("#edit-profile-modal").modal('hide');
+                  }
+                });
+              }
+              else {
+                $('#passcode').val('');
+                $('#confirm_passcode').val('');
+              }
+            });
+          
+          });
+        </script>
+    {% endif %}
     {% block java_scripts %}{% endblock java_scripts %}
   </body>
 </html>

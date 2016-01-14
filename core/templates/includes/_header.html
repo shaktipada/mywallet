@@ -1,8 +1,10 @@
+{% load mywallet_tags %}
+{% check_customer user.id as customer %}
 <nav class="navbar navbar-default" role="navigation">
   <div class="container-fluid">
     {% if user %}
       <div class="navbar-header">
-        <a class="navbar-brand navbar-left" href="{% url 'core:home' %}">Home</a>
+        <a class="navbar-brand navbar-left" href="{% url 'core:home' %}">{{ user.first_name }} {{ user.last_name }}</a>
       </div>
     {% endif %}
     <div class="collapse navbar-collapse">
@@ -12,20 +14,14 @@
         </li>
         {% if user.is_superuser %}
           <li>
-            <a  href="">Staff</a>
-          </li>
-          <li>
-            <a  href="">Billers</a>
-          </li>
-          <li>
-            <a  href="">Customers</a>
+            <a  href="{% url 'core:users' %}">Users</a>
           </li>
         {% elif user.is_staff %}
           <li>
-            <a  href="">Billers</a>
+            <a  href="{% url 'core:billers' %}">Billers</a>
           </li>
           <li>
-            <a  href="">Customers</a>
+            <a  href="{% url 'core:customers' %}">Customers</a>
           </li>
         {% endif %}
         {% if user %}
@@ -36,7 +32,11 @@
             <a  href="{% url 'core:logout' %}">Logout</a>
           </li>
         {% endif %}
+        {% if customer %}
+         <button class="btn btn-danger btn-sm deactivate" data-id='{{ user.id }}'>Deactivate Account</a>
+        {% endif %}
       </ul>
     </div>
   </div>
 </nav>
+

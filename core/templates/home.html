@@ -1,145 +1,158 @@
 {% extends 'base.html' %}
 {% load mywallet_tags %}
-
+{% check_customer user.id as customer %}
 {% block head_title %} MyWallet {% endblock head_title %}
 {% block body_content %}
-	{% if txns and mywallet_user or mywallet_user.wallet == 0.0 %}
-  	{# {% include "includes/_txn.html" with txns=txns user=user %} #}
-		<div class="row">
-		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Balance: {{ mywallet_user.wallet }}</h4></div>
+	<div class="row text-center">
+		<div class="col-lg-11 col-md-11 col-sm-11 col-xs-11">
+
+			{% if users %}<h3>MyWallet Users</h3>{% endif %}
+			{% if billers %}<h3>MyWallet Merchants</h3>{% endif %}
+			{% if customers %}<h3>MyWallet Customers</h3>{% endif %}
+			
+			{% if users or billers or customers %}
+				</br></br>
+				<div class="row">
+				  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h4>Name</h4></div>
+				  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h4>Username</h4></div>
+				  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h4>Email ID</h4></div>
+				  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h4>Contact No.</h4></div>
+				  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h4>Wallet</h4></div>
+				  <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1"><h4>Staff</h4></div>
+				  <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1"><h4>Active</h4></div>
+				</div>
+			{% endif %}
+			{% if users %}
+				{% for u in users %}
+					{% if not u.user.is_superuser %}
+					  <div class="row" id="users">
+					    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.user.first_name }} {{ u.user.last_name }}</h5></div>
+					    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.user.username }}</h5></div>
+					    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.user.email }}</h5></div>
+					    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.contact_number }}</h5></div>
+					    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.wallet }}</h5></div>
+					    <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1"><h5>{{ u.user.is_staff }}</h5></div>
+				    	{% if u.user.is_active %}
+				    		<button type="button" class="btn btn-danger deactivate" data-id="{{ u.user.id }}">Disable</button>
+				    	{% else %}
+				    		<button type="button" class="btn btn-primary activate" data-id="{{ u.user.id }}">Enable</button>
+				    	{% endif %}
+					  </div>
+					{% endif %}
+				{% endfor %}
+				<div id="user-modal" class="modal fade" role="dialog">
+			  	<div class="modal-dialog">
+				    <div class="modal-content">
+			  	    <div class="modal-header">
+			    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+			      	  <h4 class="modal-title">Enable User</h4>
+			      	</div>
+			      	<div class="modal-body">
+								<form role="form" action="" method="post" accept-charset="utf-8" id='user_form'>
+	  			    		{% csrf_token %}
+				  	      <h4>Are you sure you want to activate this account ?</h4>
+				    	    <div class="form-group">
+							    	<label for="id"></label>
+										<input id='id' class="form-control" type="hidden" name="id" value="" disabled>
+									</div>
+				    	    <button type="button" class="btn btn-primary" id="enable-submit">Enable</button>
+			      		</form>
+			      	</div>
+			      	<div class="modal-footer"></div>
+			    	</div>
+			  	</div>
+				</div>
+			{% endif %}
+
+			{% if billers %}
+				{% for u in billers %}
+				  <div class="row" id="billers">
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.biller.user.first_name }} {{ u.biller.user.last_name }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.biller.user.username }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.biller.user.email }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.biller.contact_number }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.biller.wallet }}</h5></div>
+				    <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1"><h5>{{ u.biller.user.is_staff }}</h5></div>
+				    <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+				    	{% if u.biller.user.is_active %}
+				    		<button type="button" class="btn btn-danger deactivate" data-id="{{ u.biller.user.id }}">Disable</button>
+				    	{% else %}
+				    		<button type="button" class="btn btn-primary activate" data-id="{{ u.biller.user.id }}">Enable</button>
+				    	{% endif %}
+				    </div>
+				  </div>
+				{% endfor %}
+
+			<!-- biller modals -->
+				<div id="biller-modal" class="modal fade" role="dialog">
+			  	<div class="modal-dialog">
+				    <div class="modal-content">
+			  	    <div class="modal-header">
+			    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+			      	  <h4 class="modal-title">Biller</h4>
+			      	</div>
+			      	<div class="modal-body">
+								<form role="form" action="" method="post" accept-charset="utf-8" id='biller_form'>
+				      		{% csrf_token %}
+				  				<div class="form-group">
+								    <label for="name">Name</label>
+										<input id='name' class="form-control" type="text" name="name" value="" disabled>
+									</div>
+				  				<div class="form-group">
+								    <label for="username">Email ID</label>
+										<input id='username' class="form-control" type="text" name="username" value="" disabled>
+									</div>
+				  				<div class="form-group">
+								    <label for="email_id">Email ID</label>
+										<input id='email_id' class="form-control" type="text" name="email_id" value="" disabled>
+									</div>
+				  				<div class="form-group">
+								    <label for="contact_number">Contact Number</label>
+										<input id='contact_number' class="form-control" type="text" name="contact_number" value="" disabled>
+									</div>
+				  				<div class="form-group">
+								    <label for="commission">Commission (%)</label>
+										<input id='commission' class="form-control" type="number" name="commission" value="">
+									</div>
+									<div class="form-group">
+								    <label for="id"></label>
+										<input id='id' class="form-control" type="hidden" name="id" value="" disabled>
+									</div>
+				        	<button type="button" class="btn btn-primary" id="biller-submit">Submit</button>
+								</form>
+			      	</div>
+			      	<div class="modal-footer"></div>
+			    	</div>
+			  	</div>
+				</div>
+
+			{% endif %}
+			{% if customers %}
+				{% for u in customers %}
+				  <div class="row">
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.customer.user.first_name }} {{ u.customer.user.last_name }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.customer.user.username }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.customer.user.email }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.customer.contact_number }}</h5></div>
+				    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"><h5>{{ u.customer.wallet }}</h5></div>
+				    <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1"><h5>{{ u.customer.user.is_staff }}</h5></div>
+				    <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1"><h5>{{ u.customer.user.is_active }}</h5></div>
+				  </div>
+				{% endfor %}
+			{% endif %}
 		</div>
-		{% check_customer user.id as customer %}
-		{% check_biller user.id as biller %}
+	</div>
 
-		{% if customer %}
-		  <button type="button" class="btn btn-danger" id="pay">Pay Bills</button>
-		  <button type="button" class="btn btn-primary" id="load">Add Amount</button>
-		  <button type="button" class="btn btn-danger" id="transfer">Transfer Amount</button>
-		{% elif biller %}
-		  <button type="button" class="btn btn-success" id="unload">Unload Amount</button>
-		{% endif %}
-		<h3>Transactions</h3>
-		<div class="row">
-		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>From</h4></div>
-		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>To</h4></div>
-		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Amount</h4></div>
-		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Notes</h4></div>
-		</div>
-		{% for txn in txns %}
-		  <div class="row">
-		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.from_user.user.username }}</h5></div>
-		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.to_user.user.username }}</h5></div>
-		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.amount }}</h5></div>
-		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.note }}</h5></div>
-		  </div>
-		{% endfor %}
-
-		<!-- unload amount modals -->
-		<div id="unload-modal" class="modal fade" role="dialog">
-	  	<div class="modal-dialog">
-		    <div class="modal-content">
-	  	    <div class="modal-header">
-	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
-	      	  <h4 class="modal-title">Unload amount</h4>
-	      	</div>
-	      	<div class="modal-body">
-						<form role="form" action="" method="post" accept-charset="utf-8" id='unload_form'>
-		      		{% csrf_token %}
-		  				<div class="form-group">
-						    <label for="amount">Amount</label>
-								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
-							</div>
-		  				<div class="form-group">
-						    <label for="note">Note</label>
-								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
-								<input id='type' class="form-control" type="hidden" name="type" value="unload" placeholder="">
-							</div>
-		        	<button type="button" class="btn btn-primary" id="unload-submit">Submit</button>
-						</form>
-	      	</div>
-	      	<div class="modal-footer"></div>
-	    	</div>
-	  	</div>
-		</div>
-
-		<!-- load amount modals -->
-		<div id="load-modal" class="modal fade" role="dialog">
-	  	<div class="modal-dialog">
-		    <div class="modal-content">
-	  	    <div class="modal-header">
-	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
-	      	  <h4 class="modal-title">load amount</h4>
-	      	</div>
-	      	<div class="modal-body">
-						<form role="form" action="" method="post" accept-charset="utf-8" id='load_form'>
-		      		{% csrf_token %}
-		  				<div class="form-group">
-						    <label for="amount">Amount</label>
-								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
-							</div>
-		  				<div class="form-group">
-						    <label for="note">Note</label>
-								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
-								<input id='type' class="form-control" type="hidden" name="type" value="load" placeholder="">
-							</div>
-		        	<button type="button" class="btn btn-primary" id="load-submit">Submit</button>
-						</form>
-	      	</div>
-	      	<div class="modal-footer"></div>
-	    	</div>
-	  	</div>
-		</div>
-
-	{% endif %}
-
-	<!-- Edit profile modals -->
-	<div id="edit-profile-modal" class="modal fade" role="dialog">
+	<div id="disable-modal" class="modal fade" role="dialog">
   	<div class="modal-dialog">
 	    <div class="modal-content">
   	    <div class="modal-header">
     	    <button type="button" class="close" data-dismiss="modal">&times;</button>
-      	  <h4 class="modal-title">Edit Profile</h4>
+      	  <h4 class="modal-title">Disable Biller</h4>
       	</div>
       	<div class="modal-body">
-
-					<form role="form" action="" method="post" accept-charset="utf-8" id='edit_profile_form'>
-	      		{% csrf_token %}
-	  				<div class="form-group">
-					    <label for="first_name">Name</label>
-					    <div class="row">
-					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-									<input id='first_name' class="form-control" type="text" name="first-name" value="" placeholder="">
-								</div>
-					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-									<input id='last_name' class="form-control" type="text" name="last-name" value="" placeholder="">
-								</div>
-							</div>
-						</div>
-	  				<div class="form-group">
-					    <label for="contact_number">Contact Number</label>
-							<input id='contact_number' class="form-control" type="phone" name="contact_number" value="" placeholder="Mobile no.">
-						</div>
-	        	<button type="button" class="btn btn-primary" id="edit-profile">Submit</button>
-					</form>
-
-					</br></br>
-
-					<form role="form" action="" method="post" accept-charset="utf-8" id='change_password_form'>
-	      		{% csrf_token %}
-						<div class="form-group">
-					    <label for="passcode">Change Password</label>
-					    <div class="row">
-					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-									<input id='passcode' class="form-control" type="password" name="password" value="" placeholder="Password">
-								</div>
-					    	<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-									<input id='confirm_passcode' class="form-control" type="password" name="confirm-passcode" value="" placeholder="Confirm Password">
-								</div>
-							</div>
-						</div>
-	        	<button type="button" class="btn btn-primary" id="change-password">Submit</button>
-					</form>
-
+	        <h4>Are you sure you want to deactivate this account ?</h4>
+	        <button type="button" class="btn btn-danger" name="" id="disable-submit">Disable</button>
       	</div>
       	<div class="modal-footer"></div>
     	</div>
@@ -147,142 +160,124 @@
 	</div>
 
 
+
 {% endblock body_content %}
+
 {% block java_scripts %}
+
 	<script type="text/javascript">
-    $(document).ready(function(){
 
-			$('#unload').click(function(event) {
-				$("#unload-modal").modal({
-			    backdrop: 'static',
+		$(document).ready(function(){
+
+			$('.deactivate').click(function(event) {
+				var user_id = $(this).data("id");
+				console.log(user_id);
+    		$('#disable-modal #disable-submit').attr('name', user_id);
+				$("#disable-modal").modal({
+					backdrop: 'static',
 			    keyboard: true,
 			    show: true
-			  });
+				});
 			});
-			$('#unload-submit').click(function(event) {
-    		var data = $( "form#unload_form" ).serializeArray();
-    		console.log(data);
+
+			$('#disable-modal #disable-submit').click(function(event) {
+				var user_id = $(this).attr("name");
 				$.ajax({
-		      url: "{% url 'api:transactions' user.id %}",
-	        type: 'POST',
-          data: data,
-	        dataType: 'json',
-	        context: this,
+		      url: '/api/deactivate-account/' + user_id + '/',
+	        type: 'DELETE',
 	        success: function(data) {
 	        	console.log(data);
 			      location.reload();
+			      {% if customer %}
+			      	window.location = "{% url 'core:logout' %}";
+				      window.location("{% url 'core:logout' %}");
+			      {% endif %}
 	        },
-	        error: function() {
-	          console.log("error");
-			      $("#txn-modal").modal('hide');
+	        error: function(error) {
+	          console.log(error);
+			      $("#disable-modal").modal('hide');
 	        }
 	      });
 			});
 
 
-			$('#load').click(function(event) {
-				$("#load-modal").modal({
+			$('#users .activate').click(function(event) {
+			  $('#user_form #id').val($(this).data("id"));
+				$("#user-modal").modal({
 			    backdrop: 'static',
 			    keyboard: true,
 			    show: true
 			  });
 			});
-			$('#load-submit').click(function(event) {
-    		var data = $( "form#load_form" ).serializeArray();
-    		console.log(data);
+
+			$('#enable-submit').click(function(event) {
+    		var user_id = $("#user_form #id").val();
 				$.ajax({
-		      url: "{% url 'api:transactions' user.id %}",
+		      url: '/api/activate-wallet-admin/' + user_id + '/',
 	        type: 'POST',
-          data: data,
-	        dataType: 'json',
 	        context: this,
 	        success: function(data) {
 	        	console.log(data);
 			      location.reload();
 	        },
-	        error: function() {
-	          console.log("error");
-			      $("#txn-modal").modal('hide');
+	        error: function(error) {
+	          console.log(error);
+			      $("#user-modal").modal('hide');
 	        }
 	      });
 			});
 
 
-			$('#edit_profile').click(function(e){
-	      e.preventDefault();
-        $('#edit_profile_form #first_name').val('');
-        $('#edit_profile_form #last_name').val('');
-        $('#edit_profile_form #contact_number').val('');
-        $('#change_password_form #passcode').val('');
-        $('#change_password_form #confirm_passcode').val('');
-	      $.ajax({
-	        url: "{% url 'api:user' user.id %}",
+				
+			$('#billers .activate').click(function(event) {
+				var user_id = $(this).data("id");
+				$.ajax({
+		      url: '/api/biller/' + user_id,
 	        type: 'GET',
 	        dataType: 'json',
 	        context: this,
-	        success: function(result){
-	        	console.log(result);
-	          $('#edit_profile_form #first_name').val(result.user.first_name);
-	          $('#edit_profile_form #last_name').val(result.user.last_name);
-	          $('#edit_profile_form #contact_number').val(result.contact_number);
-			      $("#edit-profile-modal").modal({
-			          backdrop: 'static',
-			          keyboard: true,
-			          show: true
-			      });
+	        success: function(data) {
+	        	console.log(data);
+			      $('#biller_form #name').val(data.biller.user.first_name + " " + data.biller.user.last_name);
+			      $('#biller_form #email_id').val(data.biller.user.email);
+			      $('#biller_form #username').val(data.biller.user.username);
+			      $('#biller_form #contact_number').val(data.biller.contact_number);
+			      $('#biller_form #commission').val(data.commission * 100);
+			      $('#biller_form #id').val(user_id);
+						$("#biller-modal").modal({
+					    backdrop: 'static',
+					    keyboard: true,
+					    show: true
+					  });
 	        },
-	        error: function(){
+	        error: function() {
 	          console.log("error");
+			      $("#biller-modal").modal('hide');
 	        }
 	      });
-	    });
+			});
 
-			$('#edit-profile').click(function(e){
-	      e.preventDefault();
-	      $.ajax({
-		      url: "{% url 'api:edit_profile' user.id %}",
-	        type: 'PUT',
-          data: $( "form#edit_profile_form" ).serializeArray(),
+			$('#biller-submit').click(function(event) {
+    		var data = $( "form#biller_form" ).serializeArray();
+    		var user_id = $("#biller_form #id").val();
+    		console.log(data);
+				$.ajax({
+		      url: '/api/activate-biller/' + user_id + '/',
+	        type: 'POST',
+          data: data,
 	        dataType: 'json',
 	        context: this,
 	        success: function(data) {
 	        	console.log(data);
-			      $("#edit-profile-modal").modal('hide');
+			      location.reload();
 	        },
-	        error: function() {
-	          console.log("error");
-			      $("#edit-profile-modal").modal('hide');
+	        error: function(error) {
+	          console.log(error);
+			      $("#biller-modal").modal('hide');
 	        }
 	      });
-	    });
+			});
 
-			$('#change-password').click(function(e){
-	      e.preventDefault();
-    		var password = $('#passcode').val();
-    		var confirm_password = $('#confirm_passcode').val();
-    		if (password == confirm_password) {
-		      $.ajax({
-		        url: "{% url 'api:edit_profile' user.id %}",
-		        type: 'PUT',
-	          data: $( "form#change_password_form" ).serializeArray(),
-		        dataType: 'json',
-		        context: this,
-		        success: function(data) {
-		        	console.log(data);
-			      	$("#edit-profile-modal").modal('hide');
-		        },
-		        error: function() {
-		          console.log("error");
-			      	$("#edit-profile-modal").modal('hide');
-		        }
-		      });
-		    }
-		    else {
-  				$('#passcode').val('');
-    			$('#confirm_passcode').val('');
-      	}
-	    });
-	  
-	  });
+		});
 	</script>
 {% endblock java_scripts %}

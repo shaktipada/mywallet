@@ -165,18 +165,13 @@ class MywalletView(APIView):
 			)
 	
 	def post(self, request, user_id):
-		current_user = request.user
 		try:
-			if current_user.is_superuser:
-				mywallet_user = self.get_object(user_id)
-				mywallet_user.user.is_staff = True
-				mywallet_user.save()
-				serializer = MywalletSerializer(mywallet_user)
-				return Response(serializer.data)
-			return Response(
-				data=json.dumps({'error': 'Unauthorized'}),
-				status=status.HTTP_404_UNAUTHORIZED
-			)
+			mywallet_user = User.objects.get(id=user_id)
+			mywallet_user.is_staff = True
+			mywallet_user.is_active = True
+			mywallet_user.save()
+			serializer = MywalletSerializer(self.get_object(user_id))
+			return Response(serializer.data)
 		except Exception as e:
 			Response(
 				data=json.dumps({'error': 'DB error'}),
@@ -188,15 +183,17 @@ class MywalletView(APIView):
 		print form_data
 		mywallet_user = None
 		try:
+			user = User.objects.get(id=user_id)
 			mywallet_user = self.get_object(user_id)
 			print ">>>>>>>>>>", mywallet_user
-			if mywallet_user is not None:
+			if user is not None:
 				if 'password' in form_data:
-					mywallet_user.user.password = make_password(form_data.get('password', ''))
+					user.password = make_password(form_data.get('password', ''))
 				else:
-					mywallet_user.user.first_name = form_data.get('first-name', '')
-					mywallet_user.user.last_name = form_data.get('last-name', ''),
+					user.first_name = form_data.get('first-name', '')
+					user.last_name = form_data.get('last-name', ''),
 					mywallet_user.contact_number = form_data.get('contact_number', '')
+				user.save()
 				mywallet_user.save()
 				serializer = MywalletSerializer(mywallet_user)
 				return Response(serializer.data)
@@ -212,22 +209,16 @@ class MywalletView(APIView):
 
 	def delete(self, request, user_id):
 		try:
-			current_user = request.user
-			if current_user.is_superuser:
-				mywallet_user = None
-				mywallet_user = self.get_object(user_id)
-				if mywallet_user is not None:
-					mywallet_user.user.is_active = False
-					mywallet_user.user.is_staff = False
-					mywallet_user.save()
-					return Response(status=status.HTTP_204_NO_CONTENT)
-				return Response(
-					data=json.dumps({'error': 'User Not found'}),
-					status=status.HTTP_404_NOT_FOUND
-				)
+			mywallet_user = None
+			mywallet_user = User.objects.get(id=user_id)
+			if mywallet_user is not None:
+				mywallet_user.is_active = False
+				mywallet_user.is_staff = False
+				mywallet_user.save()
+				return Response(status=status.HTTP_204_NO_CONTENT)
 			return Response(
-				data=json.dumps({'error': 'Unauthorized'}),
-				status=status.HTTP_404_UNAUTHORIZED
+				data=json.dumps({'error': 'User Not found'}),
+				status=status.HTTP_404_NOT_FOUND
 			)
 		except Exception as e:
 			Response(
@@ -273,42 +264,23 @@ class BillerView(APIView):
 			)
 	
 	def post(self, request, user_id):
-		current_user = request.user
-		if current_user.is_staff:
-			try:
-				biller = self.get_object(user_id)
-				biller.biller.user.is_active = True
-				biller.commission = float(request.data.get('commission', 0.0)) / 100.0
-				biller.save()
-				serializer = BillerSerializer(biller)
-				return Response(serializer.data)
-			except Exception as e:
-				Response(
-					data=json.dumps({'error': 'DB error'}),
-					status=status.HTTP_404_NOT_FOUND
-				)
-		return Response(
-			data=json.dumps({'error': 'Unauthorized'}),
-			status=status.HTTP_404_UNAUTHORIZED
-		)
-
-	def delete(self, request, user_id):
-		current_user = request.user
-		if current_user.is_staff:
-			biller = None
+		try:
+			print ">>>>>>>>>>>"
+			form_data = request.data.dict()
+			print "form_data", form_data
+			user = User.objects.get(id=user_id)
+			user.is_active = True
+			user.save()
 			biller = self.get_object(user_id)
-			if biller is not None:
-				biller.biller.user.is_active = False
-				biller.save()
-				return Response(status=status.HTTP_204_NO_CONTENT)
-			return Response(
-				data=json.dumps({'error': 'User Not found'}),
+			biller.commission = float(form_data.get('commission', 0.0)) / 100.0
+			biller.save()
+			serializer = BillerSerializer(biller)
+			return Response(serializer.data)
+		except Exception as e:
+			Response(
+				data=json.dumps({'error': 'DB error'}),
 				status=status.HTTP_404_NOT_FOUND
 			)
-		return Response(
-			data=json.dumps({'error': 'Unauthorized'}),
-			status=status.HTTP_404_UNAUTHORIZED
-		)
 
 
 class CustomerView(APIView):
@@ -342,24 +314,11 @@ class CustomerView(APIView):
 				status=status.HTTP_404_UNAUTHORIZED
 			)
 
-	def delete(self, request):
-		current_user = request.user
-		customer = self.get_object(current_user.id)
-		if customer is not None:
-			customer.customer.user.is_active = False
-			customer.save()
-			return Response(status=status.HTTP_204_NO_CONTENT)
-		return Response(
-			data=json.dumps({'error': 'User Not found'}),
-			status=status.HTTP_404_NOT_FOUND
-		)
-
 
 class TransactionView(APIView):
 	
 	def check_admin(self, user_id):
 		try:
-			print ">>>>>>>>>>>>>>"
 			user = Mywallet.objects.get(user__id=user_id, user__is_active=True, user__is_staff=True)
 		except Exception as e:
 			user = None
@@ -380,14 +339,10 @@ class TransactionView(APIView):
 		return customer
 
 	def get(self, request, user_id):
-		print "_______________"
 		current_user = User.objects.get(id=user_id)
-		print current_user
-		print ">>>>>>>>>>>>>>>>>>>>>", current_user
 		user = None
 		user = self.check_admin(user_id)
 		txn = None
-		print ">>>>>>>>>>>>>>>>>>>>>", user
 		if user is not None:
 			txn = Transaction.objects.all()
 		else:
@@ -399,7 +354,6 @@ class TransactionView(APIView):
 				)
 			)
 		if txn is not None:
-			print ">>>>>>>>>>>>>>>>>>>>>", txn
 			serializer = TransactionSerializer(
 				txn,
 				many=True if isinstance(txn, QuerySet) else False
@@ -413,39 +367,32 @@ class TransactionView(APIView):
 	def post(self, request, user_id):
 		current_user = User.objects.get(id=user_id)
 		form_data = request.data.dict()
-		print current_user, form_data, ">>>>>>>>>>>>>>>>>>>>>"
 		if 'type' not in form_data:
-			print 'Transaction type not specified'
 			return Response(
 				data=json.dumps({'error': 'Transaction type not specified'}),
 				status=status.HTTP_400_BAD_REQUEST
 			)
 		elif form_data.get('type') not in ['unload', 'transfer', 'load', 'pay']:
-			print 'Transaction type inappropriate'
 			return Response(
 				data=json.dumps({'error': 'Transaction type inappropriate'}),
 				status=status.HTTP_400_BAD_REQUEST
 			)
 		if form_data.get('type') == 'unload':
-			print ">>>>>>>>>>>>>>>>??????????????"
 			biller = self.check_biller(current_user.id)
-			print ">>>>>>>>>>>>>>>>??????????????", biller
 			if biller is not None and biller.biller.wallet > 0.0:
-				mywallet = Mywallet.objects.filter(user__is_superuser=True).first()
 				commission = biller.commission * float(form_data.get('amount', 0.0))
-				
-				mywallet.wallet -= float(form_data.get('amount', 0.0))
+
+				mywallet = Mywallet.objects.filter(user__is_superuser=True).first()
+				mywallet.wallet += commission
+				mywallet.save()
+
 				biller.unloaded_amount += float(form_data.get('amount', 0.0)) - commission
 				biller.save()
 				
-				print mywallet.wallet, "::::::::"
-				print ".............", commission
-
 				mywallet_user = Mywallet.objects.get(user__id=current_user.id)
-				print mywallet, mywallet_user
+				mywallet_user.wallet -= float(form_data.get('amount', 0.0))
+				mywallet_user.save()
 
-				mywallet.wallet += commission
-				mywallet.save()
 				txn = Transaction.objects.create(
 					from_user=mywallet_user,
 					to_user=mywallet_user,
@@ -455,50 +402,48 @@ class TransactionView(APIView):
 				serializer = TransactionSerializer(txn)
 				return Response(serializer.data)
 		elif form_data.get('type') == 'transfer':
-			print ">>>>>>>>>>>>>>>>LLLLLLL"
 			from_customer = self.check_customer(current_user.id)
-			print ">>>>>>>>>>>>>>>>LLLLLLL", from_customer
-			if from_customer.check_password(form_data.get('password')):
-				to_customer = self.check_customer(int(form_data('to_id')))
+			if current_user.check_password(form_data.get('password')):
+				to_customer = self.check_customer(int(form_data.get('to_id')))
 				if to_customer is not None and from_customer is not None and from_customer.customer.wallet > 0.0:
-					from_customer.customer.wallet -= float(form_data.get('amount', 0))
+					from_user = Mywallet.objects.get(user__id=current_user.id)
+					to_user = Mywallet.objects.get(user__id=int(form_data.get('to_id')))
+					from_user.wallet -= float(form_data.get('amount', 0))
 					commission = .01 * float(form_data.get('amount', 0))
-					to_customer.customer.wallet += float(form_data.get('amount', 0)) - commission
-					to_customer.save()
-					from_customer.save()
+					to_user.wallet += float(form_data.get('amount', 0)) - commission
+					to_user.save()
+					from_user.save()
 					mywallet = Mywallet.objects.filter(user__is_superuser=True).first()
 					mywallet.wallet += commission
 					mywallet.save()
 					txn = Transaction.objects.create(
-						from_user=Mywallet.objects.get(user__id=current_user.id),
-						to_user=Mywallet.objects.get(user__id=int(form_data.get('to_id'))),
+						from_user=from_user,
+						to_user=to_user,
 						amount=float(form_data.get('amount', 0)),
 						note=form_data.get('note', '')
 					)
 					serializer = TransactionSerializer(txn)
 					return Response(serializer.data)
 		elif form_data.get('type') == 'pay':
-			print ">>>>>>>>>>>>>>>>MMMMMMMM"
 			customer = self.check_customer(current_user.id)
-			print ">>>>>>>>>>>>>>>>MMMMMMMM", customer
 			biller = self.check_biller(int(form_data.get('biller_id')))
 			if customer is not None and customer.customer.wallet > 0.0:
-				customer.customer.wallet -= float(form_data.get('amount', 0.0))
-				biller.biller.wallet += float(form_data.get('amount', 0))
-				customer.save()
-				biller.save()
+				from_user = Mywallet.objects.get(user__id=customer.customer.user.id)
+				to_user = Mywallet.objects.get(user__id=biller.biller.user.id)
+				from_user.wallet -= float(form_data.get('amount', 0.0))
+				to_user.wallet += float(form_data.get('amount', 0))
+				from_user.save()
+				to_user.save()
 				txn = Transaction.objects.create(
-					from_user=Mywallet.objects.get(user__id=customer.customer.user.id),
-					to_user=Mywallet.objects.get(user__id=biller.biller.user.id),
+					from_user=from_user,
+					to_user=to_user,
 					amount=float(form_data.get('amount', 0)),
 					note=form_data.get('note', '')
 				)
 				serializer = TransactionSerializer(txn)
 				return Response(serializer.data)
 		elif form_data.get('type') == 'load':
-			print ">>>>>>>>>>>>>>>>PPPPPP"
 			customer = self.check_customer(current_user.id)
-			print ">>>>>>>>>>>>>>>>MMMMMMMM", customer
 			if customer is not None:
 				mywallet_user = Mywallet.objects.get(user__id=current_user.id)
 				mywallet_user.wallet += float(form_data.get('amount', 0.0))
@@ -509,10 +454,8 @@ class TransactionView(APIView):
 					amount=float(form_data.get('amount', 0.0)),
 					note=form_data.get('note', '')
 				)
-				print txn.amount
 				serializer = TransactionSerializer(txn)
 				return Response(serializer.data)
-		print "XXXXXXXXXXxxx"
 		return Response(
 			data=json.dumps({'error': 'Unauthorized'}),
 			status=status.HTTP_404_UNAUTHORIZED

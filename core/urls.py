@@ -9,5 +9,7 @@ urlpatterns = patterns('',
 	url(r'^logout$', 'django.contrib.auth.views.logout', {'next_page': '/mywallet'}, name='logout'),
 	url(r'^home$', login_required(TemplateView.as_view(template_name='home.html')), name='home'),
 	url(r'^transaction$', views.transaction_view, name='txn'),
-	# url(r'^home', views.HomeView.as_view(), name='home'),
+	url(r'^billers$', views.billers_view, name='billers'),
+	url(r'^customers$', views.customers_view, name='customers'),
+	url(r'^users$', views.users_view, name='users'),
 )

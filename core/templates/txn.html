@@ -1,61 +1,195 @@
 {% extends 'base.html' %}
-{% block head_title %} MyWallet Admin {% endblock head_title %}
+{% load mywallet_tags %}
+{% block head_title %} MyWallet {% endblock head_title %}
 {% block body_content %}
-	<div class="row">
-		<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Balance: {{ mywallet }}</h4></div>
-	</div>
-	{% if user_type == 'customer' %}
-  	<button type="button" class="btn btn-danger" id="pay">Pay Bills</button>
-  	<button type="button" class="btn btn-primary" id="load">Add Amount</button>
-  	<button type="button" class="btn btn-danger" id="transfer">Transfer Amount</button>
-	{% elif user_type == 'biller' %}
-  	<button type="button" class="btn btn-success" id="unload">Unload Amount</button>
-	{% endif %}
-	<h3>Transactions</h3>
-	<div class="row">
-		<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>From</h4></div>
-		<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>To</h4></div>
-		<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Amount</h4></div>
-  	<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Notes</h4></div>
-	</div>
-	{% for txn in txns %}
+	{% if txns and mywallet_user or mywallet_user.wallet == 0.0 %}
+  	{# {% include "includes/_txn.html" with txns=txns user=user %} #}
 		<div class="row">
-			<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.from_user.user.username }}</h5></div>
-			<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.to_user.user.username }}</h5></div>
-			<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.amount }}</h5></div>
-	  	<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.note }}</h5></div>
+			{% if mywallet_user.user.is_superuser or not mywallet_user.user.is_staff %}
+			  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Balance: {{ mywallet_user.wallet }}</h4></div>
+			{% endif %}
 		</div>
-	{% endfor %}
+		{% check_customer user.id as customer %}
+		{% check_biller user.id as biller %}
 
-	<div id="txn-modal" class="modal fade" role="dialog">
-  	<div class="modal-dialog">
-	    <div class="modal-content">
-  	    <div class="modal-header">
-    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
-      	  <h4 class="modal-title">Transaction</h4>
-      	</div>
-      	<div class="modal-body">
-	      	{% csrf_token %}
-					<form role="form" action="" method="post" accept-charset="utf-8" id='txn_form'>
-					</form>
-      	</div>
-      	<div class="modal-footer">
-      		<button type="button" class="btn btn-primary" id="submit">Submit</button>
-      	</div>
-    	</div>
-  	</div>
-	</div>
+		{% if customer %}
+		  <button type="button" class="btn btn-danger" id="pay">Pay Bills</button>
+		  <button type="button" class="btn btn-primary" id="load">Add Amount</button>
+		  <button type="button" class="btn btn-danger" id="transfer">Transfer Amount</button>
+		{% elif biller %}
+		  <button type="button" class="btn btn-success" id="unload">Unload Amount</button>
+		{% endif %}
+		<h3>Transactions</h3>
+		<div class="row">
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>From</h4></div>
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>To</h4></div>
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Amount</h4></div>
+		  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h4>Notes</h4></div>
+		</div>
+		{% for txn in txns %}
+		  <div class="row">
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.from_user.user.username }}</h5></div>
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.to_user.user.username }}</h5></div>
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.amount }}</h5></div>
+		    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"><h5>{{ txn.note }}</h5></div>
+		  </div>
+		{% endfor %}
+
+	<!-- Transfer amount modals -->
+		<div id="transfer-modal" class="modal fade" role="dialog">
+	  	<div class="modal-dialog">
+		    <div class="modal-content">
+	  	    <div class="modal-header">
+	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+	      	  <h4 class="modal-title">Pay Bills</h4>
+	      	</div>
+	      	<div class="modal-body">
+						<form role="form" action="" method="post" accept-charset="utf-8" id='transfer_form'>
+		      		{% csrf_token %}
+		  				<div class="form-group">
+						    <label for="amount">Amount</label>
+								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
+							</div>
+							<div class="form-group">
+								{% customers as customers %}
+  							<label for="biller">Merchants</label>
+  							<select name='to_id' class="form-control" id="customer">
+    							{% for customer in customers %}
+    								<option value="{{ customer.customer.user.id }}">{{ customer.customer.user.username }} ({{ customer.customer.user.first_name }} {{ customer.customer.user.last_name }})</option>
+    							{% endfor %}
+  							</select>
+							</div>
+		  				<div class="form-group">
+						    <label for="password">Password</label>
+								<input id='password' class="form-control" type="password" name="password" value="" placeholder="Enter password for verification">
+							</div>
+		  				<div class="form-group">
+						    <label for="note">Note</label>
+								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
+								<input id='type' class="form-control" type="hidden" name="type" value="transfer" placeholder="">
+							</div>
+		        	<button type="button" class="btn btn-primary" id="transfer-submit">Submit</button>
+						</form>
+	      	</div>
+	      	<div class="modal-footer"></div>
+	    	</div>
+	  	</div>
+		</div>
+
+
+	<!-- Pay amount modals -->
+		<div id="pay-modal" class="modal fade" role="dialog">
+	  	<div class="modal-dialog">
+		    <div class="modal-content">
+	  	    <div class="modal-header">
+	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+	      	  <h4 class="modal-title">Pay Bills</h4>
+	      	</div>
+	      	<div class="modal-body">
+						<form role="form" action="" method="post" accept-charset="utf-8" id='pay_form'>
+		      		{% csrf_token %}
+		  				<div class="form-group">
+						    <label for="amount">Amount</label>
+								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
+							</div>
+							<div class="form-group">
+								{% billers as billers %}
+  							<label for="biller">Merchants</label>
+  							<select name='biller_id' class="form-control" id="biller">
+    							{% for biller in billers %}
+    								<option value="{{ biller.biller.user.id }}">{{ biller.biller.user.username }} ({{ biller.biller.user.first_name }} {{ biller.biller.last_name }})</option>
+    							{% endfor %}
+  							</select>
+							</div>
+		  				<div class="form-group">
+						    <label for="note">Note</label>
+								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
+								<input id='type' class="form-control" type="hidden" name="type" value="pay" placeholder="">
+							</div>
+		        	<button type="button" class="btn btn-primary" id="pay-submit">Submit</button>
+						</form>
+	      	</div>
+	      	<div class="modal-footer"></div>
+	    	</div>
+	  	</div>
+		</div>
+
+		<!-- unload amount modals -->
+		<div id="unload-modal" class="modal fade" role="dialog">
+	  	<div class="modal-dialog">
+		    <div class="modal-content">
+	  	    <div class="modal-header">
+	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+	      	  <h4 class="modal-title">Unload amount</h4>
+	      	</div>
+	      	<div class="modal-body">
+						<form role="form" action="" method="post" accept-charset="utf-8" id='unload_form'>
+		      		{% csrf_token %}
+		  				<div class="form-group">
+						    <label for="amount">Amount</label>
+								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
+							</div>
+		  				<div class="form-group">
+						    <label for="note">Note</label>
+								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
+								<input id='type' class="form-control" type="hidden" name="type" value="unload" placeholder="">
+							</div>
+		        	<button type="button" class="btn btn-primary" id="unload-submit">Submit</button>
+						</form>
+	      	</div>
+	      	<div class="modal-footer"></div>
+	    	</div>
+	  	</div>
+		</div>
+
+		<!-- load amount modals -->
+		<div id="load-modal" class="modal fade" role="dialog">
+	  	<div class="modal-dialog">
+		    <div class="modal-content">
+	  	    <div class="modal-header">
+	    	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+	      	  <h4 class="modal-title">load amount</h4>
+	      	</div>
+	      	<div class="modal-body">
+						<form role="form" action="" method="post" accept-charset="utf-8" id='load_form'>
+		      		{% csrf_token %}
+		  				<div class="form-group">
+						    <label for="amount">Amount</label>
+								<input id='amount' class="form-control" type="number" name="amount" value="{{ mywallet_user.wallet }}" placeholder="Enter amount">
+							</div>
+		  				<div class="form-group">
+						    <label for="note">Note</label>
+								<input id='note' class="form-control" type="text" name="note" value="" placeholder="Enter note(optional)">
+								<input id='type' class="form-control" type="hidden" name="type" value="load" placeholder="">
+							</div>
+		        	<button type="button" class="btn btn-primary" id="load-submit">Submit</button>
+						</form>
+	      	</div>
+	      	<div class="modal-footer"></div>
+	    	</div>
+	  	</div>
+		</div>
+
+	{% endif %}
 
 {% endblock body_content %}
+
 {% block java_scripts %}
 	<script type="text/javascript">
     $(document).ready(function(){
 			
-    	$('#submit').click(function(event) {
-    		var data = $( "form#txn_form" ).serializeArray();
+			$('#unload').click(function(event) {
+				$("#unload-modal").modal({
+			    backdrop: 'static',
+			    keyboard: true,
+			    show: true
+			  });
+			});
+			$('#unload-submit').click(function(event) {
+    		var data = $( "form#unload_form" ).serializeArray();
     		console.log(data);
 				$.ajax({
-		      url: "{% url 'transactions' user.id %}",
+		      url: "{% url 'api:transactions' user.id %}",
 	        type: 'POST',
           data: data,
 	        dataType: 'json',
@@ -66,116 +200,94 @@
 	        },
 	        error: function() {
 	          console.log("error");
-			      $("#txn-modal").modal('hide');
+			      $("#unload-modal").modal('hide');
 	        }
 	      });
-    	});
-
-
-			$('#unload').click(function(e){
-
-				var type = this.id;
-				$.ajax({
-	        url: "{% url 'user' user.id %}",
-	        type: 'GET',
-	        dataType: 'json',
-	        context: this,
-	        success: function(result){
-	        	console.log(result);
-	        	$('#txn_form').empty();
-						$('#txn_form').append('<div class="form-group"><label for="amount">Amount</label><div class="row"><div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"><input id="amount" class="form-control" type="number" name="amount" placeholder="Enter Amount" value="' + result.wallet + '"></div></div></div><div class="form-group"><label for="note">Note</label><div class="row"><div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"><input id="note" class="form-control" type="text" name="note" placeholder="Enter note (optional)" value=""></div></div></div><div class="form-group"><label for="type"></label><input id="type" class="form-control" type="hidden" name="type" value="' + type + '"></div></div></div>');
-			      $("#txn-modal").modal({
-			          backdrop: 'static',
-			          keyboard: true,
-			          show: true
-			      });
-	        },
-	        error: function(){
-	          console.log("error");
-					  $("#edit-profile-modal").modal('hide');
-	        }
-	      });
-
 			});
 
-			$('#pay').click(function(e){
-
-				var type = this.id;
+			$('#transfer').click(function(event) {
+				$("#transfer-modal").modal({
+			    backdrop: 'static',
+			    keyboard: true,
+			    show: true
+			  });
+			});
+			$('#transfer-submit').click(function(event) {
+    		var data = $( "form#transfer_form" ).serializeArray();
+				console.log(data);
 				$.ajax({
-	        url: "{% url 'user' user.id %}",
-	        type: 'GET',
+		      url: "{% url 'api:transactions' user.id %}",
+	        type: 'POST',
+          data: data,
 	        dataType: 'json',
 	        context: this,
-	        success: function(result){
-	        	console.log(result);
-	        	$('#txn_form').empty();
-						var billers; 
-						$.ajax({
-	        		url: "{% url 'billers' %}",
-	        		type: 'GET',
-	        		dataType: 'json',
-	        		context: this,
-	        		success: function(result){
-	        			console.log(result);
-	        			billers = result;
-	        		},
-			        error: function(){
-			        	billers = []
-			        }
-			      });
-				    console.log(billers);
-				    var sel = '<div id="" class="form-group"><label for="biller">Pay bills for</label><select class="form-control" id="biller">'
-    '<option>1</option>
-    <option>2</option>
-    <option>3</option>
-    <option>4</option>
-  </select>
-</div>'
-
-
-/*						$('#txn_form').append('<div class="form-group"><label for="amount">Amount</label><div class="row"><div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"><input id="amount" class="form-control" type="number" name="amount" placeholder="Enter Amount" value="' + result.wallet + '"></div></div></div><div class="form-group"><label for="note">Note</label><div class="row"><div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"><input id="note" class="form-control" type="text" name="note" placeholder="Enter note (optional)" value=""></div></div></div><div class="form-group"><label for="type"></label><input id="type" class="form-control" type="hidden" name="type" value="' + type + '"></div></div></div>');
-			      $("#txn-modal").modal({
-			          backdrop: 'static',
-			          keyboard: true,
-			          show: true
-			      });*/
+	        success: function(data) {
+	        	console.log(data);
+			      location.reload();
 	        },
-	        error: function(){
+	        error: function() {
 	          console.log("error");
-					  $("#edit-profile-modal").modal('hide');
+			      $("#transfer-modal").modal('hide');
 	        }
 	      });
-
 			});
-			
 
+			$('#load').click(function(event) {
+				$("#load-modal").modal({
+			    backdrop: 'static',
+			    keyboard: true,
+			    show: true
+			  });
+			});
+			$('#load-submit').click(function(event) {
+    		var data = $( "form#load_form" ).serializeArray();
+    		console.log(data);
+				$.ajax({
+		      url: "{% url 'api:transactions' user.id %}",
+	        type: 'POST',
+          data: data,
+	        dataType: 'json',
+	        context: this,
+	        success: function(data) {
+	        	console.log(data);
+			      location.reload();
+	        },
+	        error: function() {
+	          console.log("error");
+			      $("#load-modal").modal('hide');
+	        }
+	      });
+			});
 
-			/*$('#change-password').click(function(e){
-	      e.preventDefault();
-    		var password = $('#passcode').val();
-    		var confirm_password = $('#confirm_passcode').val();
-    		if (password == confirm_password) {
-		      $.ajax({
-		        url: "{% url 'edit_profile' user.id %}",
-		        type: 'PUT',
-	          data: $( "form#change_password_form" ).serializeArray(),
-		        dataType: 'json',
-		        context: this,
-		        success: function(data) {
-		        	console.log(data);
-			      	$("#edit-profile-modal").modal('hide');
-		        },
-		        error: function() {
-		          console.log("error");
-			      	$("#edit-profile-modal").modal('hide');
-		        }
-		      });
-		    }
-		    else {
-  				$('#passcode').val('');
-    			$('#confirm_passcode').val('');
-      	}
-	    });*/
+			$('#pay').click(function(event) {
+				$("#pay-modal").modal({
+			    backdrop: 'static',
+			    keyboard: true,
+			    show: true
+			  });
+			});
+			$('#pay-submit').click(function(event) {
+    		var data = $( "form#pay_form" ).serializeArray();
+    		console.log("--------",$('#biller :selected').val());
+
+    		console.log(data);
+				$.ajax({
+		      url: "{% url 'api:transactions' user.id %}",
+	        type: 'POST',
+          data: data,
+	        dataType: 'json',
+	        context: this,
+	        success: function(data) {
+	        	console.log(data);
+			      location.reload();
+	        },
+	        error: function() {
+	          console.log("error");
+			      $("#pay-modal").modal('hide');
+	        }
+	      });
+			});
+
 	  
 	  });
 	</script>

@@ -55,4 +55,28 @@ def transaction_view(request):
 	context['txns'] = res.json()
 	res = requests.get('%s%s' % (settings.DOMAIN, reverse('api:user', args=[current_user.id])))
 	context['mywallet_user'] = res.json()
+	return render(request, 'txn.html', context)
+
+
+@login_required(login_url='/mywallet')
+def billers_view(request):
+	context = {}
+	res = requests.get('%s%s' % (settings.DOMAIN, reverse('api:billers')))
+	context['billers'] = res.json()
+	return render(request, 'home.html', context)
+
+
+@login_required(login_url='/mywallet')
+def customers_view(request):
+	context = {}
+	res = requests.get('%s%s' % (settings.DOMAIN, reverse('api:customers')))
+	context['customers'] = res.json()
+	return render(request, 'home.html', context)
+
+
+@login_required(login_url='/mywallet')
+def users_view(request):
+	context = {}
+	res = requests.get('%s%s' % (settings.DOMAIN, reverse('api:users')))
+	context['users'] = res.json()
 	return render(request, 'home.html', context)
